@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from '@react-native-picker/picker'; // Updated import
+import { Picker } from '@react-native-picker/picker';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 
 const AddBookScreen = ({ navigation }) => {
   const [bookName, setBookName] = useState('');
@@ -9,49 +10,57 @@ const AddBookScreen = ({ navigation }) => {
   const [selectedShelf, setSelectedShelf] = useState('');
   const [category, setCategory] = useState('');
   const [shelves, setShelves] = useState([]);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Fetch available shelves to ensure we have the correct list when adding books
-    const loadShelves = async () => {
-      try {
-        const shelvesData = await AsyncStorage.getItem('shelves');
-        if (shelvesData !== null) {
-          setShelves(JSON.parse(shelvesData));
-        }
-      } catch (e) {
-        console.error('Failed to load shelves.', e);
+    const unsubscribeAuth = auth().onAuthStateChanged((user) => {
+      if (user) {
+        setUser(user);
+        loadShelves(user.uid); // Load shelves for the logged-in user
+      } else {
+        navigation.replace('Login');
       }
-    };
+    });
 
-    loadShelves();
+    return unsubscribeAuth;
   }, []);
 
-  const saveBook = async () => {
-    try {
-      if (bookName.trim() === '' || authorName.trim() === '') {
-        Alert.alert('Error', 'Both book name and author name are required.');
-        return;
+  const loadShelves = (userId) => {
+    const shelvesRef = firestore().collection('users').doc(userId).collection('shelves');
+    shelvesRef.onSnapshot(querySnapshot => {
+      const shelvesList = [];
+      querySnapshot.forEach(doc => {
+        shelvesList.push({ id: doc.id, ...doc.data() });
+      });
+      setShelves(shelvesList);
+      if (shelvesList.length > 0) {
+        setSelectedShelf(shelvesList[0].id); // Select the first shelf by default
       }
+    });
+  };
 
-      if (category.trim() === '') {
-        Alert.alert('Error', 'Please select a category.');
-        return;
-      }
-
-      // Find the selected shelf to add the book
-      const shelfIndex = shelves.findIndex(shelf => shelf.name === selectedShelf);
-      if (shelfIndex !== -1) {
-        const newBook = { name: bookName, author: authorName, category: category };
-        shelves[shelfIndex].books.push(newBook);
-        await AsyncStorage.setItem('shelves', JSON.stringify(shelves));
-        Alert.alert('Success', 'Book added successfully');
-        navigation.goBack(); // Go back to the previous screen after adding
-      } else {
-        Alert.alert('Error', 'Please select a valid shelf.');
-      }
-    } catch (e) {
-      console.error('Failed to save book.', e);
+  const saveBook = () => {
+    if (bookName.trim() === '' || authorName.trim() === '') {
+      Alert.alert('Error', 'Both book name and author name are required.');
+      return;
     }
+
+    if (category.trim() === '') {
+      Alert.alert('Error', 'Please select a category.');
+      return;
+    }
+
+    const shelfRef = firestore().collection('users').doc(user.uid).collection('shelves').doc(selectedShelf);
+    shelfRef.update({
+      books: firestore.FieldValue.arrayUnion({ name: bookName, author: authorName, category })
+    })
+    .then(() => {
+      Alert.alert('Success', 'Book added successfully');
+      navigation.goBack();
+    })
+    .catch(error => {
+      console.error('Error adding book: ', error);
+    });
   };
 
   return (
@@ -69,20 +78,23 @@ const AddBookScreen = ({ navigation }) => {
         value={authorName}
         onChangeText={setAuthorName}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Enter Shelf Name"
-        value={selectedShelf}
-        onChangeText={setSelectedShelf}
-      />
+      <Picker
+        selectedValue={selectedShelf}
+        onValueChange={(itemValue) => setSelectedShelf(itemValue)}
+        style={styles.picker}
+      >
+        {shelves.map((shelf) => (
+          <Picker.Item key={shelf.id} label={shelf.name} value={shelf.id} />
+        ))}
+      </Picker>
       <Picker
         selectedValue={category}
         onValueChange={(itemValue) => setCategory(itemValue)}
         style={styles.picker}
       >
         <Picker.Item label="Select Category" value="" />
-        <Picker.Item label="Fiction" value="Fiction" />
-        <Picker.Item label="Non-Fiction" value="Non-Fiction" />
+        <Picker.Item label="Horror" value="Horror" />
+        <Picker.Item label="Romance&Love" value="Romance&Love" />
         <Picker.Item label="Science Fiction" value="Science Fiction" />
         <Picker.Item label="Biography" value="Biography" />
       </Picker>

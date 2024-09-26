@@ -1,30 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Button, TextInput, StyleSheet, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 
 const HomeScreen = ({ navigation }) => {
   const [books, setBooks] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredBooks, setFilteredBooks] = useState([]);
-
-  const fetchBooks = async () => {
-    try {
-      const shelvesData = await AsyncStorage.getItem('shelves');
-      if (shelvesData) {
-        const shelves = JSON.parse(shelvesData);
-        const allBooks = shelves.flatMap(shelf => shelf.books);
-        setBooks(allBooks);
-        setFilteredBooks(allBooks); // Show all books initially
-      }
-    } catch (error) {
-      console.log('Error fetching books: ', error);
-    }
-  };
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', fetchBooks);
-    return unsubscribe;
-  }, [navigation]);
+    const unsubscribeAuth = auth().onAuthStateChanged((user) => {
+      if (user) {
+        setUser(user);
+        fetchBooks(user.uid);
+      } else {
+        navigation.replace('Login');
+      }
+    });
+
+    return unsubscribeAuth;
+  }, []);
+
+  const fetchBooks = async (userId) => {
+    try {
+      const userShelvesRef = firestore().collection('users').doc(userId).collection('shelves');
+      const snapshot = await userShelvesRef.get();
+      
+      const allBooks = [];
+      snapshot.forEach((doc) => {
+        const shelf = doc.data();
+        if (shelf.books) {
+          allBooks.push(...shelf.books); // Spread all books from the shelves
+        }
+      });
+
+      setBooks(allBooks);
+      setFilteredBooks(allBooks); // Initialize with all books
+    } catch (error) {
+      console.error('Error fetching books: ', error);
+    }
+  };
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -36,10 +52,24 @@ const HomeScreen = ({ navigation }) => {
     setFilteredBooks(filtered);
   };
 
+  const logout = async () => {
+    try {
+      await auth().signOut();
+      navigation.replace('Login');
+    } catch (error) {
+      console.log('Error logging out: ', error);
+    }
+  };
+
   const renderBookItem = ({ item, index }) => (
     <View style={styles.bookItem}>
-     <Text style={styles.bookTitle} onPress={() => navigation.navigate('BookDetails', { book: item })}>{item.name}</Text>
-     <Text style={styles.bookAuthor}>{item.author}</Text>
+      <Text
+        style={styles.bookTitle}
+        onPress={() => navigation.navigate('BookDetails', { book: item })}
+      >
+        {item.name}
+      </Text>
+      <Text style={styles.bookAuthor}>{item.author}</Text>
     </View>
   );
 
@@ -59,6 +89,8 @@ const HomeScreen = ({ navigation }) => {
       <Button title="Add New Book" onPress={() => navigation.navigate('AddBook')} />
       <View style={styles.spacer} />
       <Button title="View Bookshelves" onPress={() => navigation.navigate('Bookshelf')} />
+      <View style={styles.spacer} />
+      <Button title="Logout" onPress={logout} />
     </View>
   );
 };
