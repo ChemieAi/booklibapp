@@ -90,6 +90,8 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.spacer} />
       <Button title="View Bookshelves" onPress={() => navigation.navigate('Bookshelf')} />
       <View style={styles.spacer} />
+      <Button title="Profile" onPress={() => navigation.navigate('Profile')} />
+      <View style={styles.spacer} />
       <Button title="Logout" onPress={logout} />
     </View>
   );

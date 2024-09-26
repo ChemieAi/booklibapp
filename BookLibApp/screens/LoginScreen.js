@@ -34,6 +34,7 @@ const LoginScreen = ({ navigation }) => {
         onChangeText={setPassword}
       />
       <Button title="Login" onPress={handleLogin} />
+      <View style={styles.spacer} />
       <Button title="Register" onPress={() => navigation.navigate('Register')} />
     </View>
   );
@@ -49,6 +50,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
+  },
+  spacer: {
+    height: 20,
   },
   input: {
     borderWidth: 1,
