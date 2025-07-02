@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "54186310472",
+    "project_id": "booklibapp",
+    "storage_bucket": "booklibapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:54186310472:android:a0e378a14209ba7dd7517d",
+        "android_client_info": {
+          "package_name": "com.booklibapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiRZ1m5vjoOfdNrT2xwh5afcnvRpNwg0U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:54186310472:android:dc3dc6aab263d4c9d7517d",
+        "android_client_info": {
+          "package_name": "com.booklibapp2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiRZ1m5vjoOfdNrT2xwh5afcnvRpNwg0U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
